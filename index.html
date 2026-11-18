@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Лабиринт">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.png">
+<title>Лабиринт забытой библиотеки</title>
+<style>
+:root{--bg:#100e0b;--ink:#f0e4cd;--gold:#dfbd80;--gold2:#a87b43;--muted:#c2ad8f;--line:rgba(225,187,121,.23);--panel:rgba(29,22,17,.93);--serif:Georgia,'Times New Roman',serif;--app-vh:100dvh;}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#100e0b;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;}
+button,input{font:inherit}
+button{cursor:pointer;color:inherit;touch-action:manipulation}
+button:disabled{cursor:not-allowed;opacity:.4}
+button:focus-visible,input:focus-visible{outline:2px solid #f7d9a0;outline-offset:4px}
+button:active:not(:disabled){transform:translateY(1px)}
+#app{position:relative;width:100%;height:100vh;height:var(--app-vh);overflow:hidden;isolation:isolate;background:radial-gradient(ellipse at 50% 26%,#32241a 0%,#1d1814 52%,#100e0b 100%)}
+.room-art{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.98}
+.vignette{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(8,7,6,.65),transparent 28%,transparent 68%,rgba(10,8,7,.72)),radial-gradient(ellipse at center,transparent 27%,rgba(5,4,4,.75) 95%);z-index:1}
+.grain{position:absolute;inset:0;pointer-events:none;z-index:2;opacity:.12;background-image:url('data:image/svg+xml,%3Csvg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="n"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.35" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23n)" opacity=".4"/%3E%3C/svg%3E')}
+.dust{position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden}
+.dust span{position:absolute;display:block;border-radius:50%;width:3px;height:3px;background:#fce1a7;box-shadow:0 0 9px 2px rgba(255,196,94,.32);opacity:.28;animation:float 18s linear infinite}
+@keyframes float{0%{transform:translate3d(0,20px,0);opacity:0}15%{opacity:.45}80%{opacity:.25}100%{transform:translate3d(24px,-100px,0);opacity:0}}
+button.primary{border:1px solid rgba(255,223,158,.62);background:linear-gradient(180deg,#dfbd80,#ad7c41);box-shadow:0 10px 30px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.35);color:#1c120a;border-radius:12px;font-weight:750;padding:14px 22px}
+button.ghost{border:1px solid var(--line);border-radius:12px;background:rgba(28,21,15,.75);padding:12px 16px;color:#e6d4b9}
+button.minibtn{border:1px solid rgba(236,190,118,.2);background:rgba(24,18,14,.74);border-radius:11px;padding:9px 12px;font-size:13px;color:var(--muted)}
+.topbar{position:absolute;z-index:9;top:0;left:0;right:0;padding:21px clamp(20px,3.5vw,54px);display:flex;align-items:center;justify-content:space-between;gap:18px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-sigil{display:grid;place-items:center;width:42px;height:42px;border:1px solid rgba(243,207,139,.55);border-radius:12px;color:var(--gold);font-family:var(--serif);font-size:26px;background:rgba(26,19,13,.75);box-shadow:0 0 18px rgba(230,176,82,.14)}
+.brand-label{font-family:var(--serif);font-size:clamp(18px,2vw,28px);letter-spacing:.03em;line-height:1.1}
+.brand-sub{margin-top:5px;color:#bea88a;font-size:11px;letter-spacing:.18em;text-transform:uppercase}
+.toolbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.hud{position:absolute;z-index:6;top:95px;left:clamp(20px,3.5vw,54px);right:clamp(20px,3.5vw,54px);display:flex;align-items:center;justify-content:space-between;gap:20px}
+.hud-left{display:flex;gap:10px;flex-wrap:wrap}
+.hud-stat{min-width:117px;border:1px solid var(--line);border-radius:13px;background:rgba(21,16,12,.74);backdrop-filter:blur(8px);padding:9px 15px}
+.hud-label{color:#c4ae8b;text-transform:uppercase;letter-spacing:.11em;font-size:10px}
+.hud-value{font-family:var(--serif);font-size:22px;margin-top:2px;color:#f1ddb6}
+.hud-right{font-size:13px;color:#d4bd99;text-align:right;max-width:300px;line-height:1.5}
+.view{position:relative;z-index:5;height:100%;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:145px 35px 72px}
+.welcome{width:min(730px,88vw);background:linear-gradient(180deg,rgba(27,20,15,.86),rgba(16,12,10,.91));border:1px solid rgba(231,196,126,.38);box-shadow:0 20px 90px rgba(0,0,0,.62),inset 0 0 55px rgba(162,98,41,.06);border-radius:25px;padding:clamp(24px,4vw,48px);position:relative}
+.welcome:before,.scrollPanel:before{content:'✧';position:absolute;top:-19px;left:50%;transform:translateX(-50%);background:#241a12;color:#f4d8a2;border:1px solid rgba(227,185,108,.36);width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:24px}
+.eyebrow{font-size:12px;letter-spacing:.25em;color:#d9b575;text-transform:uppercase;margin:0 0 14px}
+h1,h2,h3,p{margin:0}
+h1,h2,h3{font-family:var(--serif);font-weight:500}
+.welcome h1{font-size:clamp(37px,4.8vw,65px);line-height:1.05;color:#f2dec0;text-shadow:0 0 40px rgba(234,180,94,.13)}
+.welcome .lead{font-size:clamp(15px,1.45vw,18px);line-height:1.7;color:#d3baa0;margin:20px auto 24px;max-width:610px}
+.time-controls{display:flex;align-items:center;justify-content:center;gap:13px;margin:16px 0 12px;flex-wrap:wrap}
+.time-control{display:flex;align-items:center;gap:9px;background:rgba(9,8,7,.56);border:1px solid rgba(230,192,127,.3);border-radius:13px;padding:8px 12px}
+.time-control input{border:0;background:transparent;color:#fff1ce;width:70px;font-family:var(--serif);font-size:30px;text-align:center;appearance:textfield;-moz-appearance:textfield}
+.time-control input::-webkit-outer-spin-button,.time-control input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.time-control span{font-size:14px;color:#ccb28d}
+.note{color:#aa9477;font-size:13px;line-height:1.5}
+.welcome .primary{font-size:17px;min-width:260px;margin-top:18px}
+.room-heading{position:absolute;top:21%;width:min(790px,90vw);z-index:5;text-shadow:0 4px 20px #0b0908}
+.room-heading .chapter{font-size:12px;letter-spacing:.26em;color:#d9b574;text-transform:uppercase;margin-bottom:8px}
+.room-heading h2{font-size:clamp(29px,3vw,48px);color:#f1dec2}
+.room-heading p{font-size:15px;color:#bba58a;margin-top:8px}
+.doors{position:absolute;bottom:12%;width:min(1080px,90vw);display:grid;grid-template-columns:repeat(3,1fr);align-items:end;gap:clamp(18px,3vw,45px);z-index:5}
+.door{--doorwood:#57351f;--light:#ecbd71;position:relative;min-width:0;min-height:clamp(240px,34vh,365px);background:transparent;border:0;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;filter:drop-shadow(0 12px 25px rgba(0,0,0,.55));transition:transform .25s ease,filter .25s ease}
+.door.blocked{filter:grayscale(.9);opacity:.4}
+.door-arch{position:relative;width:min(100%,215px);height:clamp(215px,31vh,329px);border:9px solid #382718;border-bottom:15px solid #27180f;border-radius:112px 112px 9px 9px;box-shadow:inset 0 0 0 2px rgba(238,187,111,.19),inset 0 0 17px 10px rgba(13,9,7,.7),0 0 0 2px rgba(172,121,65,.65),0 0 0 8px #20160f;background:linear-gradient(135deg,rgba(193,138,71,.38),transparent 19%),repeating-linear-gradient(90deg,rgba(20,12,8,.12) 0 14px,rgba(244,187,111,.04) 15px 17px,transparent 20px 35px),linear-gradient(120deg,#684328 0%,#3b281b 48%,#5c3c23 100%);overflow:hidden}
+.door-arch:before{content:'';position:absolute;inset:16px 12px 12px;border:2px solid rgba(195,151,89,.48);border-radius:100px 100px 3px 3px;box-shadow:inset 0 0 0 8px rgba(29,18,12,.15)}
+.door-arch:after{content:'';position:absolute;inset:50% 20px 20px;border:1px solid rgba(240,197,125,.18);border-radius:5px;box-shadow:inset 0 0 0 11px rgba(37,20,12,.2)}
+.door-symbol{position:absolute;top:24%;left:50%;transform:translateX(-50%);font-family:var(--serif);font-size:37px;color:#d9b879;text-shadow:0 0 16px rgba(252,222,162,.25);z-index:2}
+.door-handle{position:absolute;top:60%;right:17%;width:16px;height:16px;border:3px solid #f3d9a2;border-radius:50%;box-shadow:0 0 0 3px #9b713a,0 0 16px rgba(255,211,130,.36);z-index:2}
+.door-num{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:#e8c489;margin-top:19px}
+.door-caption{font-family:var(--serif);font-size:20px;color:#eddbc0;margin-top:6px}
+.door-hint{color:#a68d71;font-size:12px;margin-top:6px}
+.door.blocked .door-caption{text-decoration:line-through}
+.room-foot{position:absolute;bottom:3%;z-index:6;color:rgba(216,187,146,.72);font-size:12px;letter-spacing:.07em}
+.overlay-bg{position:fixed;inset:0;background:rgba(5,4,4,.74);backdrop-filter:blur(8px);z-index:30;display:flex;align-items:center;justify-content:center;padding:22px}
+.scrollPanel{position:relative;width:min(640px,95vw);max-height:90vh;overflow:auto;border:1px solid rgba(234,196,128,.54);border-radius:20px;background:radial-gradient(ellipse at 50% 0%,rgba(153,98,48,.24),transparent 65%),linear-gradient(180deg,#2e2219,#17120f);padding:35px clamp(20px,4vw,45px);box-shadow:0 32px 95px rgba(0,0,0,.7),inset 0 0 70px rgba(165,113,60,.06);text-align:center}
+.scrollPanel .event-icon{font-size:49px;line-height:1.2;filter:drop-shadow(0 0 18px rgba(239,180,86,.19))}
+.scrollPanel h2{font-size:clamp(29px,4vw,42px);margin:15px 0 10px}
+.scrollPanel p{font-size:16px;line-height:1.7;color:#ceb79a}
+.scrollPanel .rule{height:1px;margin:25px auto;background:linear-gradient(90deg,transparent,rgba(225,193,128,.5),transparent)}
+.scrollPanel .duration{font-family:var(--serif);font-size:60px;color:#ffdda4;line-height:1.15;margin:6px 0 16px}
+.scrollPanel .button-row{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:22px}
+.scrollPanel .button-row button{min-width:145px}
+.save-tip{font-size:12px;color:#a68e74;margin-top:12px}
+.timer-focus{position:fixed;z-index:80;inset:0;background:radial-gradient(ellipse at 50% 48%,#35281b 0%,#15120f 51%,#090908 100%);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:26px}
+.timer-focus:before{content:'';position:absolute;inset:0;opacity:.4;pointer-events:none;background:radial-gradient(circle at 50% 50%,rgba(241,176,72,.13),transparent 53%)}
+.timer-ring{position:relative;width:min(63vmin,510px);height:min(63vmin,510px);display:grid;place-items:center}
+.timer-ring svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 0 12px rgba(236,178,94,.21))}
+.timer-track{fill:none;stroke:rgba(229,188,119,.12);stroke-width:7}
+.timer-arc{fill:none;stroke:#efc88a;stroke-width:8;transform:rotate(-90deg);transform-origin:50% 50%;filter:drop-shadow(0 0 9px rgba(239,177,89,.62))}
+.timer-dot{fill:#ffe8b9;filter:drop-shadow(0 0 7px rgba(255,209,131,.95))}
+.timer-number{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--serif);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:clamp(48px,7vmin,93px);color:#fff0d4;text-shadow:0 0 29px rgba(255,196,108,.2)}
+.timer-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.timer-small{color:#ac977e;font-size:14px;text-align:center}
+.timer-focus.fullscreen .timer-actions,.timer-focus.fullscreen .timer-small{display:none}
+.timer-focus.fullscreen .timer-ring{width:min(75vmin,700px);height:min(75vmin,700px)}
+.timer-focus.fullscreen .timer-number{font-size:clamp(52px,8.4vmin,119px)}
+.toast{position:fixed;z-index:200;bottom:24px;left:50%;transform:translateX(-50%);background:#3a281c;border:1px solid #bb9156;border-radius:13px;padding:12px 20px;color:#f9e9ce;box-shadow:0 12px 40px #0009;max-width:90vw;text-align:center}
+.log{max-height:260px;overflow:auto;text-align:left;border:1px solid var(--line);border-radius:12px;padding:12px;color:#d6bd98;font-size:13px;line-height:1.8;background:#100d0bb8}
+.log-item{border-bottom:1px solid rgba(226,179,107,.12);padding:5px 0}
+.log-item:last-child{border-bottom:0}
+.completed-banner{margin-top:12px;padding:14px;background:rgba(210,153,67,.1);border:1px solid rgba(227,184,112,.28);border-radius:12px;color:#d9c19b}
+.hidden{display:none!important}
+@media(max-width:800px){.topbar{padding:15px}.brand-label{font-size:18px}.brand-sub{display:none}.toolbar .minibtn{font-size:11px;padding:7px}.hud{top:82px;left:15px;right:15px}.hud-stat{min-width:95px;padding:7px}.hud-value{font-size:19px}.hud-right{display:none}.room-heading{top:23%}.room-heading h2{font-size:28px}.doors{width:96%;gap:10px;bottom:12%}.door-arch{height:clamp(180px,29vh,290px);border-width:5px}.door-caption{font-size:14px}.door-hint{display:none}.door-num{font-size:10px}.view{padding:115px 14px 62px}.welcome{width:96vw;padding:25px 16px}.timer-ring{width:min(78vmin,500px);height:min(78vmin,500px)}}
+@media(max-height:690px){.hud{top:78px}.room-heading{top:24%}.door-arch{height:28vh;min-height:170px}.doors{bottom:12%}.door-num{margin-top:9px}.view{padding-top:110px}.welcome{padding:24px}.welcome h1{font-size:42px}.welcome .lead{margin:12px 0}.time-controls{margin:10px 0}}
+@media(prefers-reduced-motion:reduce){.dust span,.door{animation:none!important;transition:none!important}}
+:root{--gold:#ebc98b;--muted:#cbb79b}
+.topbar{padding:14px 30px;gap:14px;background:linear-gradient(180deg,rgba(12,9,7,.83),transparent)}
+.brand-label{font-size:clamp(21px,1.8vw,27px)}
+.brand-sub{display:none}
+.toolbar{gap:8px}
+button.minibtn{font-size:14px;padding:11px 15px;border-radius:12px;white-space:nowrap;color:#ead7ba}
+button.restart-top,.restart-timer{border-color:rgba(224,157,92,.58)!important;background:rgba(99,49,25,.63)!important;color:#ffdbb4!important}
+.hud{top:89px;left:30px;right:30px}
+.hud-left{gap:13px}
+.hud-stat{min-width:147px;padding:9px 20px;background:rgba(15,11,10,.83);border-color:rgba(244,206,133,.28)}
+.hud-label{font-size:13px;letter-spacing:.11em}
+.hud-value{font-size:31px;margin-top:2px}
+.hud-right{display:none}
+.room-heading{top:19%;width:min(900px,95vw)}
+.room-heading .chapter{font-size:17px;letter-spacing:.18em;margin-bottom:9px}
+.room-heading h2{font-size:clamp(40px,4vw,58px);line-height:1.12;text-wrap:balance;filter:drop-shadow(0 5px 14px rgba(0,0,0,.8))}
+.room-heading p{display:none}
+.doors{width:min(1130px,95vw);bottom:10%;gap:clamp(16px,2.7vw,48px)}
+.door{min-height:clamp(290px,44vh,455px)}
+.door-arch{width:min(100%,255px);height:clamp(250px,38vh,385px);border-width:11px;border-bottom-width:15px;border-radius:150px 150px 13px 13px}
+.door-symbol{font-size:52px}
+.door-caption{margin-top:22px;font-family:var(--serif);font-size:clamp(29px,2.8vw,40px);font-weight:bold;letter-spacing:.03em;color:#ffe0a8;text-shadow:0 3px 15px #000}
+.door-num,.door-hint,.room-foot{display:none}
+.door.blocked .door-caption{text-decoration:none;opacity:.7}
+.welcome{width:min(900px,92vw);max-height:85vh;overflow:auto;padding:30px 44px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.welcome h1{font-size:clamp(44px,5.4vw,76px)}
+.welcome .lead{font-size:clamp(18px,1.85vw,26px);line-height:1.45;margin:16px auto 17px;max-width:760px}
+.welcome .primary{font-size:22px;padding:16px 30px}
+.welcome .eyebrow{font-size:15px}
+.time-control input{font-size:40px}
+.time-control span{font-size:20px}
+.note{font-size:16px}
+.scrollPanel:before{display:none}
+.overlay-bg{z-index:130;padding:22px;background:rgba(4,3,3,.82)}
+.scrollPanel{width:min(780px,93vw);max-height:calc(100vh - 44px);overflow:auto;overscroll-behavior:contain;padding:36px 42px 38px;border-radius:26px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:radial-gradient(ellipse at 50% 6%,rgba(153,98,48,.17),transparent 65%),linear-gradient(180deg,#302419,#17110e);box-shadow:0 27px 100px #000e,inset 0 0 60px rgba(200,150,71,.06);overflow-wrap:anywhere}
+.scrollPanel .event-icon{width:110px;height:110px;display:grid;place-items:center;font-size:80px;line-height:1;border:1px solid rgba(255,219,154,.24);border-radius:50%;background:rgba(24,18,14,.82);box-shadow:0 0 28px rgba(241,194,102,.13);flex:none}
+.scrollPanel h2{font-size:clamp(40px,4vw,62px);line-height:1.1;margin:0;text-wrap:balance;color:#f8e0b5;text-shadow:0 3px 18px rgba(0,0,0,.6)}
+.scrollPanel p.event-desc{font-size:clamp(24px,2.35vw,34px);line-height:1.25;color:#f3dfc3;font-weight:500;max-width:100%;text-wrap:balance}
+.scrollPanel .event-duration{font-family:var(--serif);font-size:clamp(72px,7vw,105px);line-height:1.06;color:#fff0bb;text-shadow:0 0 25px rgba(232,181,103,.19);white-space:nowrap}
+.scrollPanel .event-duration span{font-family:Arial,sans-serif;font-size:clamp(22px,2.35vw,32px);letter-spacing:.04em}
+.scrollPanel .button-row{margin-top:10px;width:100%;gap:12px}
+.scrollPanel .button-row button{font-size:23px;min-width:min(310px,100%);padding:17px 24px}
+.scrollPanel.event-deadend{border-color:rgba(255,107,93,.67);background:radial-gradient(ellipse at 50% 3%,rgba(175,41,27,.27),transparent 60%),linear-gradient(180deg,#302018,#17110e)}
+.scrollPanel.event-deadend .event-icon{color:#ff7466;border-color:rgba(255,114,98,.58);text-shadow:0 0 22px rgba(255,51,38,.7);font-family:Arial,sans-serif;font-weight:800}
+.scrollPanel.event-deadend h2{color:#ff998b}
+.scrollPanel.event-lucky{border-color:rgba(121,218,153,.53);background:radial-gradient(ellipse at 50% 3%,rgba(27,117,62,.25),transparent 60%),linear-gradient(180deg,#24271b,#111610)}
+.scrollPanel.event-lucky .event-icon{color:#8ee7a5;border-color:rgba(148,233,164,.45);text-shadow:0 0 22px rgba(84,240,119,.5)}
+.scrollPanel.event-lucky h2{color:#c8f4ca}
+.scrollPanel.event-passage .event-icon,.scrollPanel.event-relic .event-icon{color:#b7ccf7;border-color:rgba(148,185,237,.45);text-shadow:0 0 22px rgba(155,186,255,.5)}
+.scrollPanel.event-post .event-icon{color:#acd9a8;text-shadow:0 0 20px rgba(104,207,117,.5)}
+.timer-focus .timer-actions{max-width:95vw}
+.timer-focus .timer-actions button{font-size:18px}
+.timer-focus.fullscreen .timer-actions,.timer-focus.fullscreen .timer-small{display:none}
+.welcome .completed-banner{margin-top:8px}
+.welcome .completed-banner div:first-child{font-size:clamp(58px,6vw,84px)!important}
+@media(max-width:1100px){.topbar{padding:12px 20px}.brand-label{font-size:19px}.toolbar{gap:5px}.toolbar .minibtn{font-size:12px;padding:10px}.hud{top:73px;left:20px;right:20px}.hud-stat{padding:8px 13px;min-width:125px}.hud-value{font-size:26px}.room-heading{top:19%}.room-heading h2{font-size:40px}.doors{bottom:9%;gap:20px}.door-arch{height:clamp(230px,34vh,365px)}.door-caption{font-size:30px}.scrollPanel{width:min(710px,93vw)}}
+@media(max-height:720px){.hud{top:70px}.room-heading{top:20%}.room-heading h2{font-size:37px}.doors{bottom:7%}.door{min-height:260px}.door-arch{height:32vh;min-height:185px}.scrollPanel{gap:8px;padding:16px 26px}.scrollPanel .event-icon{width:78px;height:78px;font-size:56px}.scrollPanel h2{font-size:37px}.scrollPanel .event-duration{font-size:69px}.scrollPanel p.event-desc{font-size:25px}.scrollPanel .button-row button{font-size:20px;padding:12px 17px}.welcome{padding:22px 30px}}
+@media(max-width:800px){.toolbar .minibtn{font-size:10px;padding:7px}.brand-label{font-size:16px}.hud{top:80px}.hud-stat{min-width:83px;padding:8px}.hud-value{font-size:21px}.hud-label{font-size:10px}.room-heading{top:24%}.room-heading h2{font-size:30px}.door{min-height:220px}.door-arch{height:clamp(175px,30vh,265px);border-width:6px}.door-caption{font-size:21px}.doors{bottom:13%;gap:13px}.scrollPanel{padding:20px 18px}.scrollPanel .event-icon{width:80px;height:80px;font-size:59px}.scrollPanel h2{font-size:35px}.scrollPanel p.event-desc{font-size:23px}.scrollPanel .event-duration{font-size:68px}.scrollPanel .button-row button{font-size:19px}.welcome{width:96vw;padding:24px 16px}}
+.welcome,.scrollPanel{overflow:visible!important;max-height:none!important;flex-shrink:0;transform-origin:center center}
+.welcome:before{top:12px;left:16px;transform:none;width:32px;height:32px;border-radius:50%;font-size:20px;background:#302316;box-shadow:0 0 12px rgba(244,207,146,.14)}
+.scrollPanel:before{display:none!important}
+.overlay-bg{padding:16px}
+.scrollPanel{gap:clamp(7px,1.4vh,14px);padding:clamp(19px,3vh,36px) clamp(20px,3vw,42px);width:min(780px,94vw)}
+.scrollPanel .event-icon{width:clamp(74px,12vh,105px);height:clamp(74px,12vh,105px);font-size:clamp(50px,9vh,75px)}
+.scrollPanel h2{font-size:clamp(34px,5.4vh,54px)}
+.scrollPanel p.event-desc{font-size:clamp(21px,3.3vh,30px)}
+.scrollPanel .event-duration{font-size:clamp(56px,10vh,94px)}
+.scrollPanel .button-row{margin-top:6px}
+.scrollPanel .button-row button{font-size:clamp(17px,2.7vh,23px);padding:clamp(11px,1.8vh,17px) 20px}
+.welcome{padding:clamp(22px,3vh,32px) clamp(23px,3vw,42px)}
+.welcome .lead{margin:clamp(9px,1.7vh,16px) auto;line-height:1.35}
+.welcome .eyebrow{margin-bottom:clamp(5px,1.4vh,14px)}
+.welcome .primary{margin-top:clamp(9px,1.8vh,18px)}
+.welcome .completed-banner{margin-top:4px}
+.welcome .save-tip{margin-top:8px}
+.log{max-height:none!important;overflow:visible!important}
+.door{--doorwood:#5a3b29;--doorlight:#efcf9f;--dooraccent:#e2c399;--doortrim:#836644}
+.door-arch{border-color:color-mix(in srgb,var(--doorwood) 76%,#1b130e);background:radial-gradient(ellipse at 50% 24%,color-mix(in srgb,var(--dooraccent) 21%,transparent),transparent 55%),repeating-linear-gradient(90deg,rgba(16,10,7,.10) 0 14px,rgba(255,228,194,.055) 15px 17px,transparent 20px 35px),linear-gradient(115deg,color-mix(in srgb,var(--doorwood) 92%,#bc8e64),color-mix(in srgb,var(--doorwood) 56%,#170f0b) 55%,var(--doorwood));box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--dooraccent) 25%,transparent),inset 0 0 19px 11px rgba(13,9,7,.55),0 0 0 2px var(--doortrim),0 0 0 8px #20160f;}
+.door-symbol{color:var(--dooraccent);font-size:clamp(45px,5vw,62px);text-shadow:0 0 20px color-mix(in srgb,var(--dooraccent) 58%,transparent)}
+.door-handle{border-color:var(--doorlight);box-shadow:0 0 0 3px var(--doortrim),0 0 16px color-mix(in srgb,var(--dooraccent) 35%,transparent)}
+.door-caption{font-size:clamp(22px,2.45vw,33px);line-height:1.05;max-width:100%;min-height:2.1em;display:flex;align-items:center;justify-content:center;overflow-wrap:normal;word-break:normal;text-wrap:balance;padding:0 3px;margin-top:12px;color:var(--doorlight)}
+.door-num{display:none!important}
+@media(max-width:900px){.door-caption{font-size:clamp(17px,2.5vw,27px)}.door-arch{height:clamp(170px,30vh,300px)}.door{min-height:clamp(230px,37vh,365px)}}
+@media(max-height:700px){.room-heading h2{font-size:clamp(31px,4.4vh,44px)}.door-caption{font-size:clamp(18px,3vh,29px)}.door{min-height:clamp(215px,42vh,320px)}.door-arch{height:clamp(165px,31vh,240px)}}
+@media(hover:none){.door:not(:disabled):hover{transform:none;filter:drop-shadow(0 12px 25px rgba(0,0,0,.55))}}
+</style>
+</head>
+<body>
+<div id="app">
+<svg class="room-art" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d1916"/><stop offset=".65" stop-color="#292019"/><stop offset="1" stop-color="#100d0b"/></linearGradient>
+    <radialGradient id="light"><stop offset="0" stop-color="#e09c46" stop-opacity=".36"/><stop offset="1" stop-color="#e09c46" stop-opacity="0"/></radialGradient>
+    <linearGradient id="shelf" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#100d0b"/><stop offset=".3" stop-color="#5b3c26"/><stop offset=".75" stop-color="#2e2017"/><stop offset="1" stop-color="#100d0b"/></linearGradient>
+    <pattern id="books" patternUnits="userSpaceOnUse" width="128" height="112"><rect width="128" height="112" fill="#17100d"/><rect x="2" y="8" width="17" height="87" rx="2" fill="#58341f"/><rect x="21" y="10" width="13" height="84" fill="#73522f"/><rect x="37" y="4" width="21" height="92" rx="2" fill="#362e27"/><rect x="61" y="17" width="15" height="77" fill="#65422b"/><rect x="79" y="11" width="22" height="84" fill="#463123"/><rect x="104" y="5" width="20" height="90" fill="#6d4b31"/><path d="M5 25h11 M21 27h11 M39 22h17 M62 35h12 M81 25h18 M106 24h15 M5 74h11 M21 70h11 M39 72h17 M62 69h12 M81 69h18 M106 73h15" stroke="#bf9559" stroke-opacity=".28" stroke-width="2"/><rect y="94" width="128" height="13" fill="#58371f"/><path d="M0 96H128" stroke="#a47743" stroke-opacity=".5" stroke-width="2"/></pattern>
+    <pattern id="floor" patternUnits="userSpaceOnUse" width="180" height="65"><rect width="180" height="65" fill="#211711"/><path d="M0 20h180 M0 55h180 M90 20v35 M180 0v20" stroke="#755235" stroke-width="2" opacity=".35"/></pattern>
+    <filter id="blurGlow"><feGaussianBlur stdDeviation="13"/></filter>
+  </defs>
+  <rect width="1440" height="900" fill="url(#wall)"/>
+  <rect x="0" y="150" width="340" height="590" fill="url(#books)" opacity=".95"/><rect x="1100" y="150" width="340" height="590" fill="url(#books)" opacity=".95"/>
+  <rect x="0" y="136" width="352" height="23" fill="url(#shelf)"/><rect x="1088" y="136" width="352" height="23" fill="url(#shelf)"/>
+  <rect x="333" y="100" width="22" height="680" fill="url(#shelf)"/><rect x="1085" y="100" width="22" height="680" fill="url(#shelf)"/>
+  <path d="M310 140V50Q720 -40 1130 50V140" fill="none" stroke="#695038" stroke-width="31" opacity=".35"/>
+  <path d="M365 720V310Q720 -35 1075 310V720" fill="#140f0d" opacity=".62" stroke="#5d412a" stroke-width="16"/>
+  <path d="M405 721V328Q720 21 1035 328V721" fill="#1f1712" opacity=".8"/>
+  <rect x="363" y="345" width="715" height="388" fill="url(#books)" opacity=".25"/>
+  <ellipse cx="720" cy="820" rx="650" ry="180" fill="#120d0b"/><path d="M0 732H1440V900H0" fill="url(#floor)" opacity=".62"/>
+  <ellipse cx="720" cy="782" rx="420" ry="100" fill="#c9934f" opacity=".09"/>
+  <ellipse cx="380" cy="350" rx="225" ry="290" fill="url(#light)"/><ellipse cx="1060" cy="350" rx="225" ry="290" fill="url(#light)"/>
+  <rect x="336" y="338" width="21" height="74" rx="4" fill="#372519" stroke="#a77b4d" stroke-width="2"/><path d="M346 337L334 350H359Z" fill="#f3ca7c"/><ellipse cx="346" cy="330" rx="46" ry="92" fill="#e9ae57" opacity=".19" filter="url(#blurGlow)"/>
+  <rect x="1083" y="338" width="21" height="74" rx="4" fill="#372519" stroke="#a77b4d" stroke-width="2"/><path d="M1093 337L1081 350H1106Z" fill="#f3ca7c"/><ellipse cx="1093" cy="330" rx="46" ry="92" fill="#e9ae57" opacity=".19" filter="url(#blurGlow)"/>
+  <path d="M0 75H1440" stroke="#a77c4b" stroke-opacity=".18" stroke-width="7"/><path d="M0 760H1440" stroke="#a77c4b" stroke-opacity=".18" stroke-width="9"/>
+</svg>
+<div class="dust" id="dust"></div><div class="vignette"></div><div class="grain"></div>
+<header class="topbar" id="topbar">
+  <div class="brand"><div class="brand-sigil">✦</div><div><div class="brand-label">Лабиринт забытой библиотеки</div><div class="brand-sub">учебный квест · dark academia</div></div></div>
+  <div class="toolbar">
+    <button class="minibtn" id="soundTest">♫ Звук</button>
+    <button class="minibtn" id="saveBtn">⇩ Сохранить</button>
+    <button class="minibtn" id="loadBtn">⇧ Загрузить</button>
+    <button class="minibtn" id="historyBtn">☷ История</button>
+    <button class="minibtn" id="fullscreenBtn">⛶ Экран</button>
+    <button class="minibtn restart-top" id="newGameBtn">↻ Новая игра</button>
+  </div>
+</header>
+<section class="hud hidden" id="hud"><div class="hud-left"><div class="hud-stat"><div class="hud-label">Учёба</div><div class="hud-value" id="studiedStat">00:00</div></div><div class="hud-stat"><div class="hud-label">Максимум</div><div class="hud-value" id="limitStat">05:00</div></div><div class="hud-stat"><div class="hud-label">Дверей</div><div class="hud-value" id="doorStat">0</div></div></div><div class="hud-right" id="itemStat">✧</div></section>
+<main class="view" id="view"></main>
+<div class="hidden" id="dialogRoot"></div>
+<div class="hidden" id="timerOverlay"></div>
+<div class="hidden" id="toast"></div>
+<input type="file" id="saveInput" accept="application/json,.json" class="hidden">
+</div>
+<script>
+'use strict';
+(() => {
+  const KEY='library-labyrinth-v3';
+  const APP_VERSION=3;
+  const roomNames=[
+    ['Архив забытых имён',''],
+    ['Зал безмолвных часов','Время здесь движется иначе.'],
+    ['Галерея переплётчиков','Каждая дверь скрывает новую историю.'],
+    ['Читальня лунного света','Не все страницы стоит открывать.'],
+    ['Скрипторий старых мастеров','В чернилах остались чужие секреты.'],
+    ['Кабинет библиотекаря','Твой путь ещё не окончен.'],
+    ['Палата запретных атласов','Некоторые карты рисуют сами себя.'],
+    ['Коридор медных ключей','За поворотом слышен тихий звон.'],
+    ['Северная ротонда','Отсюда расходятся три дороги.'],
+    ['Зеркальный каталог','Не верь всему, что обещает отражение.'],
+    ['Комната ночных страниц','Между полками гуляет ветер.'],
+    ['Потайная картотека','Одна из дверей ведёт куда-то ещё.'],
+    ['Зал астрономических книг','В старом глобусе спрятана подсказка.'],
+    ['Забытая оранжерея','Побеги плюща оплетают дверные ручки.'],
+    ['Крипта редких изданий','Даже тишина кажется тяжёлой.'],
+    ['Галерея затерянных историй','Здесь нельзя угадать правильный путь.']
+  ];
+
+  const doorSkins=[
+    {id:'moon',name:'Лунная дверь',symbol:'☾',wood:'#383a55',light:'#e0ebff',accent:'#bfd0ff',trim:'#7184ac'},
+    {id:'heart',name:'Дверь сердца',symbol:'♡',wood:'#644050',light:'#ffe0dc',accent:'#ffb7ba',trim:'#ab7183'},
+    {id:'star',name:'Звёздная дверь',symbol:'✶',wood:'#3c4862',light:'#d7eaff',accent:'#a9d9ff',trim:'#7c9fba'},
+    {id:'sun',name:'Солнечная дверь',symbol:'☼',wood:'#71502a',light:'#ffe6af',accent:'#ffcb77',trim:'#b38a4e'},
+    {id:'ivy',name:'Дверь плюща',symbol:'❦',wood:'#344d3c',light:'#d9eed0',accent:'#a8d797',trim:'#6c9b70'},
+    {id:'crystal',name:'Хрустальная дверь',symbol:'◇',wood:'#354d58',light:'#defbff',accent:'#a2e2ea',trim:'#7ba9b6'},
+    {id:'crown',name:'Дверь короны',symbol:'♛',wood:'#554158',light:'#f8ddff',accent:'#dfb7e7',trim:'#94719b'},
+    {id:'rose',name:'Дверь розы',symbol:'✿',wood:'#62404c',light:'#ffe3e8',accent:'#edb5c0',trim:'#aa7783'},
+    {id:'comet',name:'Дверь кометы',symbol:'☄',wood:'#3a4864',light:'#d9e5ff',accent:'#b6ceff',trim:'#738cb9'},
+    {id:'raven',name:'Дверь ворона',symbol:'♠',wood:'#343442',light:'#e3d9f7',accent:'#b5a8d6',trim:'#6d6589'},
+    {id:'seal',name:'Дверь печати',symbol:'❖',wood:'#5a4835',light:'#fce3b4',accent:'#e9ca8d',trim:'#a08656'},
+    {id:'dawn',name:'Дверь рассвета',symbol:'✹',wood:'#705144',light:'#fff1c8',accent:'#ffd29a',trim:'#bc9270'},
+    {id:'emerald',name:'Изумрудная дверь',symbol:'♧',wood:'#2e5147',light:'#c8f5e8',accent:'#8dd7bb',trim:'#5b9b82'},
+    {id:'mirror',name:'Зеркальная дверь',symbol:'◈',wood:'#3c4c60',light:'#e1f0fd',accent:'#b6d6ef',trim:'#739ab6'},
+    {id:'magic',name:'Дверь чар',symbol:'✧',wood:'#4f3f65',light:'#efdfff',accent:'#c7b3f4',trim:'#987db4'},
+    {id:'feather',name:'Дверь пера',symbol:'✒',wood:'#5d4533',light:'#fff0d3',accent:'#efce97',trim:'#a98c65'},
+    {id:'ember',name:'Дверь пламени',symbol:'✺',wood:'#69392c',light:'#ffe5c3',accent:'#ffa96a',trim:'#b77344'},
+    {id:'frost',name:'Дверь инея',symbol:'❄',wood:'#315264',light:'#e4faff',accent:'#b5e8ff',trim:'#72aabf'},
+    {id:'eclipse',name:'Дверь затмения',symbol:'◐',wood:'#494052',light:'#f0e5fa',accent:'#c1afd1',trim:'#8b769a'},
+    {id:'maze',name:'Дверь лабиринта',symbol:'⌘',wood:'#5c4935',light:'#f1ddb8',accent:'#d7bb87',trim:'#94764d'},
+    {id:'mist',name:'Дверь тумана',symbol:'☷',wood:'#44545a',light:'#e1f2ef',accent:'#b4d8d5',trim:'#7a9e9e'},
+    {id:'wisdom',name:'Дверь знаний',symbol:'✥',wood:'#4c4360',light:'#ebdafa',accent:'#c8b6ef',trim:'#907aab'},
+    {id:'time',name:'Дверь времени',symbol:'◷',wood:'#554633',light:'#fbe1b4',accent:'#edd0a0',trim:'#a38759'},
+    {id:'thorns',name:'Дверь шипов',symbol:'❈',wood:'#3e4934',light:'#d8e9bc',accent:'#bbd591',trim:'#7c9a58'}
+  ];
+  function assignDoorSkins(){
+    if(!state||!state.room||!Array.isArray(state.room.doors))return;
+    if(!Array.isArray(state.recentDoorSkins))state.recentDoorSkins=[];
+    const usedInRoom=new Set(state.room.doors.map(d=>d.skin).filter(Boolean));
+    let changed=false;
+    for(const door of state.room.doors){
+      if(door.skin && doorSkins.some(s=>s.id===door.skin))continue;
+      const pool=doorSkins.filter(s=>!usedInRoom.has(s.id)&&!state.recentDoorSkins.includes(s.id));
+      const fallback=doorSkins.filter(s=>!usedInRoom.has(s.id));
+      const chosen=pick(pool.length?pool:fallback);
+      door.skin=chosen.id;usedInRoom.add(chosen.id);changed=true;
+    }
+    if(changed){state.recentDoorSkins=Array.from(new Set([...state.recentDoorSkins,...state.room.doors.map(d=>d.skin)])).slice(-9);save()}
+  }
+  function skinFor(door){return doorSkins.find(s=>s.id===door.skin)||doorSkins[0]}
+  const relics=[
+    {id:'key',emoji:'🗝',name:'Медный ключ',desc:'Он помогает распознавать путь к выходу.',boost:0.08},
+    {id:'map',emoji:'🗺',name:'Потёртая карта',desc:'Карта отмечает скрытые переходы между залами.',boost:0.08},
+    {id:'compass',emoji:'✦',name:'Компас хранителя',desc:'Его стрелка ведёт в сторону выхода.',boost:0.08},
+    {id:'seal',emoji:'📜',name:'Печать архивариуса',desc:'Старый знак открывает забытые маршруты.',boost:0.07}
+  ];
+  let state=null, tickHandle=null, audioCtx=null, soundVolume=.8, activeToast=null;
+  const $=(id)=>document.getElementById(id);
+  const escapeHtml=(s)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const rand=()=>Math.random();
+  const pick=(arr)=>arr[Math.floor(rand()*arr.length)];
+  const uid=()=>Math.floor(rand()*1e9).toString(36);
+  const fmtHM=(s)=>`${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor(s%3600/60)).padStart(2,'0')}`;
+  const fmtHMS=(s)=>`${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  const maxSec=()=>state.maxMinutes*60;
+  const leftSec=()=>Math.max(0,maxSec()-state.studiedSec);
+
+  // --- Система удержания экрана от сна (через скрытое аудио) ---
+  let silentAudio = null;
+  function makeSilentBlob() {
+    const sr=8000,n=sr,buf=new ArrayBuffer(44+n),v=new DataView(buf);
+    const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+    w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);
+    v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr,true);v.setUint16(32,1,true);v.setUint16(34,8,true);
+    w(36,'data');v.setUint32(40,n,true);new Uint8Array(buf,44).fill(128);
+    return new Blob([buf],{type:'audio/wav'});
+  }
+  function startSilentAudio() {
+    if(!silentAudio){
+      try {
+        silentAudio = new Audio(URL.createObjectURL(makeSilentBlob()));
+        silentAudio.loop = true;
+        silentAudio.volume = 0.01;
+        silentAudio.setAttribute('playsinline', '');
+      } catch(e) { return; }
+    }
+    if(silentAudio.paused) silentAudio.play().catch(()=>{});
+  }
+  function stopSilentAudio() {
+    if(silentAudio && !silentAudio.paused) silentAudio.pause();
+  }
+  // -------------------------------------------------------------
+
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(state));return true}catch(e){return false}}
+  function load(){try{const raw=localStorage.getItem(KEY); if(!raw)return null;const s=JSON.parse(raw);if(s && s.v===APP_VERSION && Number.isFinite(s.maxMinutes) && ['choose','reveal','study','post','win'].includes(s.phase))return s}catch(e){}return null}
+  function openToast(text){const el=$('toast');el.textContent=text;el.className='toast';clearTimeout(activeToast);activeToast=setTimeout(()=>el.className='hidden',4300)}
+  function log(text){state.history.unshift({time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),text});state.history=state.history.slice(0,80)}
+  function warmAudio(){
+    try{
+      if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+      if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+    }catch(e){openToast('Браузер не разрешил звук. Проверь настройки Safari.');}
+  }
+  function tone(freq,when,duration,vol,type='sine'){
+    if(!audioCtx)return;
+    try{
+      const osc=audioCtx.createOscillator(),g=audioCtx.createGain();
+      osc.type=type;osc.frequency.value=freq;osc.connect(g);g.connect(audioCtx.destination);
+      const t=audioCtx.currentTime+when;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.001,vol),t+.045);
+      g.gain.exponentialRampToValueAtTime(.0001,t+duration);osc.start(t);osc.stop(t+duration+.05);
+    }catch(e){}
+  }
+  function alarm(){
+    warmAudio();
+    if(!audioCtx)return;
+    for(let j=0;j<3;j++){const a=j*2.1;tone(784,a,.40,.20*soundVolume,'triangle');tone(988,a+.46,.42,.23*soundVolume,'triangle');tone(1175,a+.95,.70,.27*soundVolume,'sine')}
+  }
+  function testSound(){warmAudio();alarm();openToast('Звучит сигнал завершения. Если не слышно — проверь громкость.');}
+  function setAmbience(){const dust=$('dust');if(!dust.children.length){for(let i=0;i<38;i++){const x=document.createElement('span');x.style.left=`${Math.round(rand()*98)}%`;x.style.top=`${Math.round(rand()*92)}%`;x.style.animationDelay=`${-rand()*20}s`;x.style.animationDuration=`${12+rand()*24}s`;dust.appendChild(x)}}}
+  function setupNew(minutes){
+    state={v:APP_VERSION,maxMinutes:minutes,studiedSec:0,roomsVisited:0,doorsChosen:0,deadEnds:0,luckyCount:0,freeStreak:0,relics:[],history:[],phase:'choose',room:null,selected:null,timer:null,created:Date.now(),finished:null};
+    log(`Начало приключения. Максимальная учёба: ${fmtHM(maxSec())}.`);
+    createRoom(); save();render();
+  }
+  function showWelcome(){
+    $('hud').className='hud hidden';
+    $('view').innerHTML=`<div class="welcome"><p class="eyebrow">✦ Твой собственный учебный квест ✦</p><h1>Библиотека без выхода</h1><p class="lead">Выбирай двери, изучай тайные комнаты, находи удачу и тупики. <strong style="color:#eed6ae">Учёба не превысит твой лимит.</strong></p><div class="eyebrow" style="margin-bottom:7px">Установи максимум учебного времени</div><div class="time-controls"><label class="time-control"><input id="hoursInput" type="number" min="0" max="12" value="5" aria-label="Часы"><span>часов</span></label><label class="time-control"><input id="minsInput" type="number" min="0" max="59" value="0" aria-label="Минуты"><span>минут</span></label></div><p class="note">От 15 минут до 12 часов. Лимит — именно сумма учебных интервалов, а не время между дверями.</p><button class="primary" id="beginBtn">Войти в лабиринт ✦</button><p class="save-tip">Без интернета · без рекламы · прогресс сохраняется в браузере</p></div>`;
+    $('beginBtn').onclick=()=>{
+      const h=parseInt($('hoursInput').value,10)||0,m=parseInt($('minsInput').value,10)||0;
+      if(h<0||h>12||m<0||m>59||h*60+m<15||h*60+m>720){openToast('Укажи от 15 минут до 12 часов.');return;}
+      setupNew(h*60+m);
+    };
+  }
+  function getExitChance(){
+    const p=state.studiedSec/maxSec();
+    const minStudy=Math.min(60,Math.max(15,Math.floor(state.maxMinutes*.2/15)*15));
+    if(state.studiedSec < minStudy*60 || state.roomsVisited<2)return 0;
+    const power=Math.pow(Math.min(1,Math.max(0,(p-.2)/.8)),1.30);
+    const relicBoost=state.relics.reduce((x,id)=>x+(relics.find(r=>r.id===id)?.boost||0),0);
+    return Math.min(.62,.055+.35*power+relicBoost+Math.max(0,state.roomsVisited-4)*.006);
+  }
+  function eventPick(studyRemaining,allowDeadEnd){
+    if(studyRemaining<900)return {kind:'exit',title:'Дверь наружу',icon:'✦'};
+    const winChance=getExitChance();
+    if(rand()<winChance)return {kind:'exit',title:'Дверь наружу',icon:'✦'};
+    const choices=[15,30,45,60].filter(m=>m*60<=studyRemaining);
+    if(!choices.length)return {kind:'exit',title:'Дверь наружу',icon:'✦'};
+    const roll=rand();
+    if(state.freeStreak>=2){return {kind:'study',min:pick(choices),icon:'⌛'};}
+    if(roll<.57)return {kind:'study',min:pick(choices),icon:'⌛'};
+    if(roll<.70)return {kind:'lucky',title:'Счастливая дверь',icon:'✧'};
+    if(roll<.80)return {kind:'relic',title:'Секрет старой книги',icon:'🗝'};
+    if(roll<.88)return {kind:'passage',title:'Потайной проход',icon:'✦'};
+    if(allowDeadEnd)return {kind:'deadend',title:'Тупик',icon:'⤺'};
+    return {kind:'study',min:pick(choices),icon:'⌛'};
+  }
+  function createRoom(){
+    state.roomsVisited++;
+    const remaining=leftSec();
+    const name=pick(roomNames);
+    let doors;
+    if(remaining<900||state.roomsVisited>=26){doors=Array.from({length:3},()=>({id:uid(),kind:'exit',title:'',icon:'✦'}))}
+    else{
+      doors=[eventPick(remaining,true),eventPick(remaining,true),eventPick(remaining,false)].map(e=>({id:uid(),...e}));
+      if(!doors.some(d=>d.kind==='study'||d.kind==='exit'))doors[Math.floor(rand()*3)]={id:uid(),kind:'study',min:pick([15,30,45,60].filter(x=>x*60<=remaining)),icon:'⌛'};
+    }
+    state.room={id:uid(),name:name[0],hint:name[1],doors,blocked:[]};
+    assignDoorSkins();
+    state.phase='choose'; state.selected=null;
+    log(`Зал ${state.roomsVisited}: ${name[0]}.`);
+  }
+  function chooseDoor(index){
+    if(state.phase!=='choose'||state.room.blocked.includes(index))return;
+    warmAudio();
+    state.doorsChosen++;
+    if(leftSec()<900){state.doorsChosen++;win('Библиотека осталась позади.');return;}
+    const event={...state.room.doors[index]};
+    state.selected={index,event};
+    const type=event.kind;
+    if(type==='deadend'){state.deadEnds++;state.room.blocked.push(index);state.freeStreak++;log('Тупик. Пришлось вернуться в тот же зал.');}
+    else if(type==='lucky'){state.luckyCount++;state.freeStreak++;log('Счастливая дверь: проход без учёбы.');}
+    else if(type==='relic'){
+      state.freeStreak++;
+      const unknown=relics.filter(r=>!state.relics.includes(r.id));
+      if(unknown.length){const r=pick(unknown);state.relics.push(r.id);state.selected.reward=r;log(`Найдена реликвия: ${r.name}.`)}
+      else{state.selected.reward={emoji:'✧',name:'Страница с подсказкой',desc:'Ты уже собрала все реликвии. Этот путь бесплатный.'};log('Найдена тайная подсказка.')}
+    }
+    else if(type==='passage'){state.freeStreak++;log('Потайной проход: следующая комната открыта без учёбы.');}
+    else if(type==='study'){state.freeStreak=0;log(`За дверью — ${event.min} минут учёбы.`);}
+    else if(type==='exit'){win('Ты нашла выход за одной из дверей!');return;}
+    state.phase='reveal';save();render();
+  }
+  function revealData(){
+    const e=state.selected.event;
+    if(e.kind==='study')return {kind:'study',icon:'⌛',title:'Время учиться',minutes:e.min,desc:'За дверью — учебное задание.',action:'Начать учёбу'};
+    if(e.kind==='lucky')return {kind:'lucky',icon:'☘',title:'Дверь удачи!',desc:'0 минут учёбы',action:'Следующий проход →'};
+    if(e.kind==='relic'){const r=state.selected.reward;return {kind:'relic',icon:'✦',title:'Находка!',desc:`${r.name} · 0 минут`,action:'Продолжить →'};}
+    if(e.kind==='passage')return {kind:'passage',icon:'✧',title:'Тайный проход!',desc:'0 минут учёбы',action:'Войти →'};
+    return {kind:'deadend',icon:'✕',title:'Тупик!',desc:'Возвращайся к дверям',action:'Вернуться ↩'};
+  }
+  function advanceReveal(){
+    const e=state.selected.event;
+    if(e.kind==='study'){startTimer(e.min);return;}
+    if(e.kind==='deadend'){
+      if(state.room.blocked.length>=3){createRoom()}
+      else state.phase='choose';
+    }else createRoom();
+    save();render();
+  }
+  function startTimer(minutes){
+    if(state.phase!=='reveal'||state.selected.event.kind!=='study')return;
+    warmAudio();
+    const duration=minutes*60*1000;
+    state.timer={durationMs:duration,remainingMs:duration,endsAt:Date.now()+duration,running:true};
+    state.phase='study';save();render();
+    if(document.documentElement.requestFullscreen){document.documentElement.requestFullscreen().catch(()=>{updateFullscreenClass();});}
+    startSilentAudio(); // Предотвращаем засыпание экрана iPad
+    tick();
+  }
+  function timerLeftMs(){if(!state||!state.timer)return 0;return state.timer.running?Math.max(0,state.timer.endsAt-Date.now()):Math.max(0,state.timer.remainingMs)}
+  function updateTimerUI(){
+    if(!state||state.phase!=='study'||!state.timer)return;
+    const left=timerLeftMs(), total=state.timer.durationMs;
+    $('timerText').textContent=fmtHMS(Math.ceil(left/1000));
+    const r=146, circ=2*Math.PI*r,ratio=Math.max(0,Math.min(1,left/total));
+    const arc=$('countArc'),dot=$('countDot');
+    if(arc){arc.style.strokeDasharray=String(circ);arc.style.strokeDashoffset=String(circ*(1-ratio));}
+    let withinMinute=(left/1000)%60;
+    if(left>=total-50)withinMinute=60;
+    const angle=(-90+((60-withinMinute)/60)*360)*Math.PI/180;
+    if(dot){dot.setAttribute('cx',String(180+146*Math.cos(angle)));dot.setAttribute('cy',String(180+146*Math.sin(angle)));}
+    const btn=$('pauseBtn');if(btn)btn.textContent=state.timer.running?'⏸ Пауза':'▶ Продолжить';
+    const note=$('timerStatus');if(note)note.textContent=state.timer.running?'Идёт учёба. Сигнал прозвучит в конце.':'Пауза. Таймер остановлен.';
+  }
+  function tick(){
+    if(!state||state.phase!=='study'||!state.timer)return;
+    const left=timerLeftMs();
+    if(left<=0){finishStudy();return;}
+    updateTimerUI();
+  }
+  function pauseToggle(){
+    if(!state||state.phase!=='study')return;
+    const t=state.timer;
+    if(t.running){t.remainingMs=timerLeftMs();t.endsAt=null;t.running=false;log('Пауза в учебном интервале.');stopSilentAudio();}
+    else{warmAudio();t.endsAt=Date.now()+t.remainingMs;t.running=true;log('Учебный интервал продолжен.');startSilentAudio();}
+    save();updateTimerUI();
+  }
+  function finishStudy(){
+    if(!state||state.phase!=='study')return;
+    state.studiedSec+=Math.round(state.timer.durationMs/1000);
+    const m=Math.round(state.timer.durationMs/60000);
+    log(`Задание выполнено: ${m} минут. Всего ${fmtHM(state.studiedSec)}.`);
+    state.timer=null;
+    alarm();
+    stopSilentAudio();
+    if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+    state.phase='post';save();render();
+  }
+  function win(reason,alreadyAlarmed=false){
+    if(!state)return;
+    if(!alreadyAlarmed)alarm();
+    stopSilentAudio();
+    state.phase='win';state.finished=Date.now();state.selected=null;state.timer=null;
+    log(`Выход найден! ${reason}`);save();render();
+  }
+  function safeFinishAfterSleep(){
+    if(state&&state.phase==='study'&&state.timer&&state.timer.running&&state.timer.endsAt<=Date.now())finishStudy();
+  }
+  function render(){
+    if(state&&state.phase==='study')safeFinishAfterSleep();
+    $('dialogRoot').className='hidden';$('dialogRoot').innerHTML='';$('timerOverlay').className='hidden';$('timerOverlay').innerHTML='';
+    if(!state){showWelcome();return;}
+    assignDoorSkins();
+    $('hud').className='hud';
+    $('studiedStat').textContent=fmtHM(state.studiedSec);
+    $('limitStat').textContent=fmtHM(maxSec());
+    $('doorStat').textContent=String(state.doorsChosen);
+    $('itemStat').textContent=state.relics.length?`Найдено: ${state.relics.map(id=>relics.find(r=>r.id===id)?.emoji||'✧').join('  ')} · ${state.relics.length} реликвий`:'Реликвии пока не найдены';
+    if(state.phase==='win'){
+      $('view').innerHTML=`<div class="welcome"><p class="eyebrow">✦ Лабиринт пройден ✦</p><h1>Выход найден!</h1><p class="lead">Библиотека осталась позади.</p><div class="completed-banner"><div style="font-family:var(--serif);font-size:55px;color:#f4dba7">${fmtHM(state.studiedSec)}</div><div style="color:#baa17d">учёбы из максимальных ${fmtHM(maxSec())}</div></div><div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:18px"><div class="hud-stat"><div class="hud-label">Дверей</div><div class="hud-value">${state.doorsChosen}</div></div><div class="hud-stat"><div class="hud-label">Тупиков</div><div class="hud-value">${state.deadEnds}</div></div><div class="hud-stat"><div class="hud-label">Удач</div><div class="hud-value">${state.luckyCount}</div></div><div class="hud-stat"><div class="hud-label">Находок</div><div class="hud-value">${state.relics.length}</div></div></div><p style="font-size:16px;color:#bea585;margin-top:18px">Путь каждый раз новый.</p><button class="primary" id="replayBtn" style="margin-top:20px">Новый лабиринт ↻</button></div>`;
+      $('replayBtn').onclick=()=>confirmRestart();return;
+    }
+    $('view').innerHTML=`<div class="room-heading"><div class="chapter">КОМНАТА ${state.roomsVisited}</div><h2>${escapeHtml(state.room.name)}</h2></div>
+      <div class="doors">${state.room.doors.map((d,i)=>{const skin=skinFor(d);return `<button class="door ${state.room.blocked.includes(i)?'blocked':''}" data-idx="${i}" style="--doorwood:${skin.wood};--doorlight:${skin.light};--dooraccent:${skin.accent};--doortrim:${skin.trim}" ${state.room.blocked.includes(i)||state.phase!=='choose'?'disabled':''} aria-label="${escapeHtml(skin.name)}, ${['налево','прямо','направо'][i]}">
+      <span class="door-arch"><span class="door-symbol" aria-hidden="true">${skin.symbol}</span><span class="door-handle"></span></span>
+      <span class="door-caption">${state.room.blocked.includes(i)?'ЗАКРЫТО':escapeHtml(skin.name)}</span></button>`}).join('')}</div>`;
+    $('view').querySelectorAll('.door').forEach(b=>b.onclick=()=>chooseDoor(Number(b.dataset.idx)));
+    if(state.phase==='reveal')showReveal();
+    if(state.phase==='post')showPost();
+    if(state.phase==='study')showStudy();
+  }
+
+  function fitVisibleCard(){
+    const panel=document.querySelector('#dialogRoot:not(.hidden) .scrollPanel')||document.querySelector('#view .welcome');
+    if(!panel)return;
+    panel.style.transform='';
+    const rect=panel.getBoundingClientRect();
+    const inDialog=!!panel.closest('#dialogRoot');
+    const availableH=window.innerHeight-(inDialog?32:Math.max(140,window.innerHeight*.23));
+    const availableW=window.innerWidth-32;
+    const scale=Math.min(1,availableH/Math.max(rect.height,1),availableW/Math.max(rect.width,1));
+    if(scale<.995)panel.style.transform=`scale(${scale.toFixed(3)})`;
+  }
+  function scheduleCardFit(){requestAnimationFrame(()=>{fitVisibleCard();requestAnimationFrame(fitVisibleCard)})}
+  function showDialog(data,callback,secondary=null){
+    const d=$('dialogRoot');
+    const duration=data.minutes!=null?`<div class="event-duration">${data.minutes}<span> МИНУТ</span></div>`:'';
+    d.className='overlay-bg';
+    d.innerHTML=`<div class="scrollPanel event-${data.kind||'neutral'}" role="dialog" aria-modal="true" aria-label="${escapeHtml(data.title)}">
+      <div class="event-icon" aria-hidden="true">${data.icon}</div>
+      <h2>${escapeHtml(data.title)}</h2>
+      ${duration}
+      <p class="event-desc">${data.desc}</p>
+      <div class="button-row"><button class="primary" id="dialogNext">${data.action}</button>${secondary?`<button class="ghost" id="dialogSecondary">${secondary.label}</button>`:''}</div>
+    </div>`;
+    $('dialogNext').onclick=callback;
+    if(secondary)$('dialogSecondary').onclick=secondary.onClick;
+  }
+  function showReveal(){showDialog(revealData(),advanceReveal);}
+  function showPost(){
+    const endReached=leftSec()<900;
+    showDialog({kind:'post',icon:'✓',title:'Готово!',desc:endReached?'Продолжай исследование.':`Всего учёбы: ${fmtHM(state.studiedSec)}`,action:'К следующим дверям →'},()=>{createRoom();save();render()});
+  }
+  function showStudy(){
+    const o=$('timerOverlay');o.className='timer-focus';
+    o.innerHTML=`<div class="timer-ring"><svg viewBox="0 0 360 360" aria-hidden="true"><circle cx="180" cy="180" r="146" class="timer-track"/><circle id="countArc" cx="180" cy="180" r="146" class="timer-arc"/><circle id="countDot" cx="180" cy="34" r="4.5" class="timer-dot"/></svg><div class="timer-number" id="timerText">00:30:00</div></div><div class="timer-actions"><button class="ghost" id="pauseBtn">⏸ Пауза</button><button class="ghost" id="focusBtn">⛶ На весь экран</button><button class="ghost" id="testAlarmBtn">♫ Проверить сигнал</button><button class="ghost restart-timer" id="restartFromTimer">↻ Новая игра</button></div><p class="timer-small" id="timerStatus">Идёт учёба. Сигнал прозвучит в конце.</p>`;
+    $('pauseBtn').onclick=pauseToggle;
+    $('focusBtn').onclick=()=>document.documentElement.requestFullscreen?.().catch(()=>openToast('Полноэкранный режим недоступен.'));
+    $('testAlarmBtn').onclick=testSound;
+    $('restartFromTimer').onclick=confirmRestart;
+    updateFullscreenClass();updateTimerUI();
+  }
+  function updateFullscreenClass(){const o=$('timerOverlay');if(!o)return;o.classList.toggle('fullscreen',!!document.fullscreenElement);}
+  function showHistory(){
+    if(!state){openToast('Сначала начни игру.');return;}
+    const d=$('dialogRoot'),items=state.history.slice(0,6).map(h=>`<div class="log-item"><span style="color:#ad8d61">${escapeHtml(h.time)}</span> · ${escapeHtml(h.text)}</div>`).join('');
+    d.className='overlay-bg';d.innerHTML=`<div class="scrollPanel"><div class="event-icon">☷</div><h2>Журнал путешествия</h2><div class="rule"></div><div class="log">${items}</div><div class="button-row"><button class="primary" id="closeHistory">Вернуться</button><button class="ghost" id="restartGame">Новая игра</button></div></div>`;
+    $('closeHistory').onclick=()=>{d.className='hidden';d.innerHTML=''};
+    $('restartGame').onclick=()=>confirmRestart();
+  }
+  function confirmRestart(){
+    if(!state){render();return;}
+    if(!confirm('Начать игру заново? Текущий прогресс сбросится.'))return;
+    stopSilentAudio();
+    if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+    state=null;try{localStorage.removeItem(KEY)}catch(e){}render();
+  }
+  function exportSave(){
+    if(!state){openToast('Сначала начни игру.');return;}
+    const data=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),url=URL.createObjectURL(data),a=document.createElement('a');
+    a.href=url;a.download='biblioteka-labirint-save.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);
+    openToast('Резервная копия игры скачана.');
+  }
+  function importSave(file){
+    if(!file)return;
+    const reader=new FileReader();reader.onload=()=>{
+      try{
+        const s=JSON.parse(reader.result);
+        if(!s||s.v!==APP_VERSION||!(s.maxMinutes>=15&&s.maxMinutes<=720)||!Number.isFinite(s.studiedSec)||!Array.isArray(s.history)||!['choose','reveal','study','post','win'].includes(s.phase)||!s.room||!Array.isArray(s.room.doors))throw new Error('invalid');
+        if(s.phase==='study'&&(!s.timer||!Number.isFinite(s.timer.durationMs)))throw new Error('invalid timer');
+        state=s;save();render();openToast('Игра загружена из файла.');
+      }catch(e){openToast('Не удалось загрузить сохранение этой версии игры.');}
+    };reader.readAsText(file);
+  }
+  function restoreAuto(){
+    const stored=load();if(stored){state=stored;render();openToast('Игра восстановлена из последнего сохранения.')}else showWelcome();
+  }
+  window.addEventListener('focus',()=>{if(state&&state.phase==='study')tick()});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&state&&state.phase==='study')tick()});
+  document.addEventListener('fullscreenchange',updateFullscreenClass);
+  document.addEventListener('keydown',(e)=>{if(e.shiftKey&&e.key.toLowerCase()==='n'){e.preventDefault();confirmRestart();return;}if(e.code==='Space'&&state&&state.phase==='study'){e.preventDefault();pauseToggle();}if(e.key==='Escape'&&$('dialogRoot').className==='overlay-bg'){if($('dialogRoot').querySelector('#closeHistory')){$('dialogRoot').className='hidden';$('dialogRoot').innerHTML=''}}});
+  $('soundTest').onclick=testSound;$('saveBtn').onclick=exportSave;$('loadBtn').onclick=()=>$('saveInput').click();
+  $('saveInput').onchange=e=>{importSave(e.target.files[0]);e.target.value='';};
+  $('historyBtn').onclick=showHistory;
+  $('newGameBtn').onclick=confirmRestart;
+  $('fullscreenBtn').onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.().catch(()=>openToast('Полноэкранный режим недоступен.'));else document.exitFullscreen?.();};
+  const autoFitObserver=new MutationObserver(scheduleCardFit);
+  autoFitObserver.observe($('view'),{childList:true});
+  autoFitObserver.observe($('dialogRoot'),{childList:true});
+  window.addEventListener('resize',scheduleCardFit);
+  setAmbience();restoreAuto();tickHandle=setInterval(tick,125);scheduleCardFit();
+
+  // Service Worker и фикс для 100dvh
+  if('serviceWorker' in navigator){ window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{});}); }
+  if(!window.CSS || !CSS.supports || !CSS.supports('height','100dvh')){
+    const setVH=()=>document.documentElement.style.setProperty('--app-vh',window.innerHeight+'px');
+    setVH(); window.addEventListener('resize',setVH); window.addEventListener('orientationchange',()=>setTimeout(setVH,200));
+  }
+})();
+</script>
+</body>
+</html>
